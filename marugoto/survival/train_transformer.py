@@ -27,7 +27,7 @@ parser.add_argument('-lr', '--lr', default=1e-5, type=float, help='lr')
 parser.add_argument('-bgs', '--bag_size', default=512, type=int, help='bag_size')
 parser.add_argument('-l1', '--l1_reg', default=1e-3, type=float, help='l1_reg')
 parser.add_argument('-l2', '--l2_reg', default=1e-3, type=float, help='l2_reg')
-parser.add_argument('-pool', '--pooling', default='cls', type=float, help='pooling techniques, either cls or mean')
+parser.add_argument('-pool', '--pooling', default='cls', type=str, help='pooling techniques, either cls or mean')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
