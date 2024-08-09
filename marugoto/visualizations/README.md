@@ -20,3 +20,19 @@ python transformer_heatmap.py \
     --n_toptiles 8
 ```
 
+### Output
+
+```bash
+      Results_folder
+      ├── Input_slide_name
+      │   ├── toptiles
+      │   │   ├── toptiles_1_(x,y).jpg
+      │   │   ├── toptiles_2_(x,y).jpg
+      │   │   ├── ...
+      │   │   └── toptiles_8_(x,y).jpg
+      │   │
+      │   ├── slide_thumbnail.jpg
+      │   ├── Input_slide_name_attention_map_layer_0.png
+      │   └── Input_slide_name_toptiles_layer_0.csv
+      └── ...
+   ```
