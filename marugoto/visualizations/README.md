@@ -34,5 +34,6 @@ python transformer_heatmap.py \
       │   ├── slide_thumbnail.jpg
       │   ├── Input_slide_name_attention_map_layer_0.png
       │   └── Input_slide_name_toptiles_layer_0.csv
+      ├── Input_slide_name_1
       └── ...
    ```
