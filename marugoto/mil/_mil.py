@@ -66,9 +66,9 @@ def train(
     valid_dl = DataLoader(
         valid_ds, batch_size=1, shuffle=False, num_workers=32)
     batch = train_dl.one_batch()
-
+    feature_dim = batch[0][0].shape[-1]
     # 1 as output dim for regression, 768 for ctranspath dims
-    model = ViT(num_classes=1, input_dim=768)
+    model = ViT(num_classes=1, input_dim=feature_dim)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device) #
 
