@@ -50,7 +50,7 @@ def train(
         bags=bags[~valid_idxs],  # type: ignore  # arrays cannot be used a slices yet
         targets=(target_enc, targs[~valid_idxs]),
         add_features=[(enc, vals[~valid_idxs]) for enc, vals in add_features],
-        bag_size=512,
+        bag_size=None,
     )
 
     valid_ds = make_dataset(
@@ -62,7 +62,7 @@ def train(
 
     # build dataloaders
     train_dl = DataLoader(
-        train_ds, batch_size=64, shuffle=True, num_workers=1, drop_last=True
+        train_ds, batch_size=1, shuffle=True, num_workers=1, drop_last=True
     )
     valid_dl = DataLoader(
         valid_ds, batch_size=1, shuffle=False, num_workers=os.cpu_count()

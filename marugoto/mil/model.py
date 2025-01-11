@@ -26,7 +26,7 @@ class MILModel(nn.Module):
         self.encoder = encoder or nn.Sequential(nn.Linear(n_feats, 256), nn.ReLU())
         self.attention = attention or Attention(256)
         self.head = head or nn.Sequential(
-            nn.Flatten(), nn.BatchNorm1d(256), nn.Dropout(), nn.Linear(256, n_out)
+            nn.Flatten(), nn.Dropout(), nn.Linear(256, n_out)
         )
 
     def forward(self, bags, lens):
