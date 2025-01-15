@@ -1,3 +1,4 @@
+import h5
 import json
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +19,7 @@ from torch import nn
 
 from marugoto.data import SKLearnEncoder
 
-from ._mil import deploy, train
+from ._mil import deploy, train, trainWithAugmentation
 from .data import get_cohort_df, get_target_enc
 
 __all__ = [
@@ -264,7 +265,10 @@ def categorical_crossval_(
     slide_csv: Path,
     feature_dir: Path,
     output_path: Path,
+    epochs: int,
     *,
+    augmented_feature_dir: Path = None,
+    augmented_slide_csv: Path = None,
     target_label: str,
     cat_labels: Sequence[str] = [],
     cont_labels: Sequence[str] = [],
@@ -286,7 +290,11 @@ def categorical_crossval_(
         categories:  Categories to train for, or all categories appearing in the
             clini table if none given (e.g. '["MSIH", "nonMSIH"]').
     """
+    assert (augmented_feature_dir is None and augmented_slide_csv is None) or (
+        augmented_feature_dir is not None and augmented_slide_csv is not None)
     feature_dir = Path(feature_dir)
+    if augmented_feature_dir:
+        augmented_feature_dir = Path(augmented_feature_dir)
     output_path = Path(output_path)
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -303,7 +311,14 @@ def categorical_crossval_(
         "output_path": str(output_path.absolute()),
         "n_splits": n_splits,
         "datetime": datetime.now().astimezone().isoformat(),
+        "epochs": epochs,
     }
+
+    if augmented_feature_dir:
+        info["augmented_feature_dir"] = str(augmented_feature_dir.absolute()),
+
+    if augmented_slide_csv:
+        info["augmented_slide"] = str(Path(augmented_slide_csv).absolute())
 
     clini_df = (
         pd.read_csv(clini_table, dtype=str)
@@ -322,6 +337,13 @@ def categorical_crossval_(
     info["categories"] = list(categories)
 
     df, _ = get_cohort_df(clini_table, slide_csv, feature_dir, target_label, categories)
+
+    if augmented_feature_dir:
+        augmented_df, _ = get_cohort_df(
+            clini_table, augmented_slide_csv, augmented_feature_dir, target_label, categories)
+        assert len(df) == len(augmented_df)
+    else:
+        augmented_df = None
 
     info["class distribution"] = {
         "overall": {k: int(v) for k, v in df[target_label].value_counts().items()}
@@ -379,12 +401,14 @@ def categorical_crossval_(
             learn = _crossval_train(
                 fold_path=fold_path,
                 fold_df=fold_train_df,
+                augmented_df=augmented_df,
                 fold=fold,
                 info=info,
                 target_label=target_label,
                 target_enc=target_enc,
                 cat_labels=cat_labels,
                 cont_labels=cont_labels,
+                epochs=epochs,
             )
             learn.export()
 
@@ -403,7 +427,7 @@ def categorical_crossval_(
 
 
 def _crossval_train(
-    *, fold_path, fold_df, fold, info, target_label, target_enc, cat_labels, cont_labels
+    *, fold_path, fold_df, augmented_df, fold, info, target_label, target_enc, cat_labels, cont_labels, epochs
 ):
     """Helper function for training the folds."""
     assert fold_df.PATIENT.nunique() == len(fold_df)
@@ -438,13 +462,26 @@ def _crossval_train(
             (_make_cont_enc(train_df, cont_labels), fold_df[cont_labels].values)
         )
 
-    learn = train(
-        bags=fold_df.slide_path.values,
-        targets=(target_enc, fold_df[target_label].values),
-        add_features=add_features,
-        valid_idxs=fold_df.PATIENT.isin(valid_patients),
-        path=fold_path,
-    )
+    if augmented_df is None:
+        learn = train(
+            bags=fold_df.slide_path.values,
+            targets=(target_enc, fold_df[target_label].values),
+            add_features=add_features,
+            valid_idxs=fold_df.PATIENT.isin(valid_patients),
+            path=fold_path,
+            n_epoch=epochs,
+        )
+    else:
+        learn = trainWithAugmentation(
+            bags=fold_df.slide_path.values,
+            augmented_bags=augmented_df.slide_path.values,
+            targets=(target_enc, fold_df[target_label].values),
+            add_features=add_features,
+            valid_idxs=fold_df.PATIENT.isin(valid_patients),
+            path=fold_path,
+            n_epoch=epochs,
+        )
+
     learn.target_label = target_label
     learn.cat_labels, learn.cont_labels = cat_labels, cont_labels
 
