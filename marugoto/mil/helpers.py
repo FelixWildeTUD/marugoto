@@ -26,6 +26,7 @@ __all__ = [
     "train_categorical_model_",
     "deploy_categorical_model_",
     "categorical_crossval_",
+    "query_"
 ]
 
 PathLike = Union[str, Path]
@@ -486,3 +487,64 @@ def _crossval_train(
     learn.cat_labels, learn.cont_labels = cat_labels, cont_labels
 
     return learn
+
+def query_(feature_path: Path,
+           model_path: Path,):
+    feature_path = Path(feature_path)
+    model_path = Path(model_path)
+
+    learn = load_learner(model_path)
+
+    feature_list = []
+    with h5py.File(feature_path, "r") as f:
+        feature_list.append(torch.from_numpy(f["feats"][:]))
+    feature_list = torch.concat(feature_list).float()
+    features = feature_list.unsqueeze(0)
+    lens = torch.tensor([features.shape[1]])
+
+    logits = learn.forward(features, lens)
+    probabilities = F.softmax(logits, dim=1)
+
+    pred_ja = probabilities[0][0].item()
+    pred_nein = probabilities[0][1].item()
+
+    print(f"ja: {pred_ja}, nein: {pred_nein}")
+
+    #if pred_ja < 0.5:
+    #    return
+
+    print(f"Blood detected in the video with a confidence of {pred_ja * 100}%")
+
+    BLOOD_CONFIDENCE = 0.9
+
+    bloodframes = []
+    for i, f in enumerate(feature_list):
+        features = f.unsqueeze(0).unsqueeze(0)
+        lens = torch.tensor([features.shape[1]])
+
+        logits = learn.forward(features, lens)
+        probabilities = F.softmax(logits, dim=1)
+
+        pred_ja = probabilities[0][0].item()
+        pred_nein = probabilities[0][1].item()
+
+        if pred_ja > BLOOD_CONFIDENCE:
+            bloodframes.append(i)
+
+    print(f"Of {len(feature_list)} frames there are {len(bloodframes)} frames ({len(bloodframes)/len(feature_list) * 100}%) where blood is detected with more then {BLOOD_CONFIDENCE * 100}% confidence")
+    print(bloodframes)
+
+    FRAMES_INTERRUPTING_SECTION = 50
+    MIN_SECTION_LENGTH = 10
+
+    bloodsections = []
+    sectionstart = 0
+    for i in range(1, len(bloodframes)):
+        if bloodframes[i] > bloodframes[i-1] + FRAMES_INTERRUPTING_SECTION:
+            if i - sectionstart > MIN_SECTION_LENGTH:
+                bloodsections.append(
+                    f"blood section: {bloodframes[sectionstart] * 5} - {bloodframes[i-1] * 5}")
+            sectionstart = i
+
+    for bs in bloodsections:
+        print(bs)
