@@ -17,12 +17,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o", "--outdir", type=Path, required=True, help="Path to save the features to."
     )
-    parser.add_argument(
-        "--augmented",
-        type=bool,
-        default=False,
-        help="Also save augmented feature vectors.",
-    )
     args = parser.parse_args()
     print(f"{args=}")
 
