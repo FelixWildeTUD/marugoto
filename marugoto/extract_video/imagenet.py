@@ -27,15 +27,12 @@ __all__ = ["extract_resnet18_imagenet_features"]
 
 
 def extract_resnet18_imagenet_features_(video_paths, **kwargs):
-    """Extracts features from slide tiles.
+    """Extracts features from video images.
 
     Args:
-        slide_tile_paths:  A list of paths containing the slide tiles, one
-            per slide.
+        video_paths:  A list of paths containing the video images, one
+            per video.
         outdir:  Path to save the features to.
-        augmented_repetitions:  How many additional iterations over the
-            dataset with augmentation should be performed.  0 means that
-            only one, non-augmentation iteration will be done.
     """
     weights = ResNet18_Weights.DEFAULT
     model = resnet18(weights=weights)
